@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Badge Studio — Custom Sticker Maker</title>
+  <meta name="description" content="Create a custom I Demoed-style sticker for any moment and download it as PNG or SVG." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2336c4dd' d='M32 3 58 18v28L32 61 6 46V18z'/%3E%3Cpath fill='%23106371' d='M32 10 52 22v20L32 54 12 42V22z'/%3E%3Cpath fill='%23f8e71c' d='M20 30h24v5H20z'/%3E%3C/svg%3E" />
+  <style>
+    :root { --navy:#263b8f; --ink:#10204d; --muted:#60709a; --panel:#fff; --line:#dce3f4; --cyan:#43c4de; --yellow:#ffe20a; --blue:#4169e8; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:radial-gradient(circle at 15% 20%,rgba(67,196,222,.23),transparent 27%),radial-gradient(circle at 88% 82%,rgba(255,226,10,.15),transparent 24%),var(--navy); }
+    button,input,textarea,select { font:inherit; }
+    .page { min-height:100vh; padding:30px; display:grid; place-items:center; }
+    .shell { width:min(1120px,100%); }
+    header { color:#fff; display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin:0 6px 22px; }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:900; letter-spacing:.02em; }
+    .brand-mark { width:38px; height:38px; background:var(--yellow); color:var(--navy); clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%); display:grid; place-items:center; font-size:18px; }
+    h1 { margin:0; font-size:clamp(1.35rem,3vw,2.05rem); letter-spacing:-.035em; }
+    .hint { margin:0; color:#dce5ff; font-weight:600; }
+    main { background:rgba(255,255,255,.98); border-radius:24px; padding:30px; box-shadow:0 28px 75px rgba(5,13,53,.34); display:grid; grid-template-columns:minmax(320px,.9fr) minmax(360px,1.1fr); gap:38px; }
+    .preview-pane { background:linear-gradient(145deg,#eef5ff,#fff); border:1px solid var(--line); border-radius:19px; min-height:580px; padding:26px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+    .preview-pane:before { content:""; position:absolute; inset:14px; border:1px dashed #becbeb; border-radius:13px; pointer-events:none; }
+    .eyebrow { align-self:flex-start; position:absolute; left:25px; top:22px; font-size:.78rem; font-weight:900; letter-spacing:.14em; text-transform:uppercase; color:#7785aa; }
+    #stickerSvg { width:min(100%,430px); height:auto; filter:drop-shadow(0 17px 13px rgba(16,32,77,.19)); overflow:visible; }
+    .size-note { position:absolute; bottom:22px; font-size:.78rem; font-weight:700; color:#8591ad; }
+    .controls { display:flex; flex-direction:column; min-width:0; }
+    .controls h2 { margin:2px 0 5px; font-size:1.7rem; letter-spacing:-.03em; }
+    .subcopy { margin:0 0 24px; color:var(--muted); line-height:1.55; }
+    .copilot { margin:0 0 22px; padding:16px; border:1.5px solid #cfd9f1; border-radius:15px; background:linear-gradient(145deg,#f5f8ff,#eefcff); box-shadow:0 8px 24px rgba(38,59,143,.08); }
+    .copilot-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
+    .copilot-title { margin:0; font-size:1rem; font-weight:900; color:#203575; }
+    .local-pill { flex:0 0 auto; border-radius:99px; padding:5px 8px; background:#dff8ef; color:#17674d; font-size:.66rem; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+    .copilot-copy { margin:3px 0 0; color:#637196; font-size:.78rem; line-height:1.45; }
+    .prompt-row { display:grid; grid-template-columns:1fr 118px; gap:9px; }
+    .prompt-input,.tone-select { width:100%; border:1.5px solid #c6d2ed; border-radius:10px; background:#fff; color:var(--ink); outline:none; }
+    .prompt-input { min-height:76px; resize:vertical; padding:11px 12px; line-height:1.4; }
+    .tone-select { height:42px; margin-top:8px; padding:0 9px; font-size:.8rem; font-weight:750; }
+    .prompt-input:focus,.tone-select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(65,105,232,.12); }
+    .ai-button { width:100%; min-height:42px; margin-top:8px; border:0; border-radius:10px; background:#263b8f; color:#fff; font-weight:850; cursor:pointer; }
+    .ai-button:disabled { opacity:.62; cursor:wait; }
+    .ai-status { min-height:17px; margin:8px 1px 0; color:#697796; font-size:.72rem; line-height:1.4; }
+    .idea-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:8px; }
+    .idea { min-height:62px; border:1.5px solid #d1daef; border-radius:10px; padding:8px; background:#fff; color:#24345e; text-align:left; cursor:pointer; }
+    .idea:hover,.idea:focus-visible { border-color:var(--blue); transform:translateY(-1px); }
+    .idea strong { display:block; font-size:.72rem; line-height:1.25; }
+    .swatches { display:flex; gap:3px; margin-top:7px; }
+    .swatches i { width:13px; height:13px; border-radius:50%; border:1px solid rgba(16,32,77,.16); }
+    .field { margin-bottom:18px; }
+    label,.label { display:block; font-size:.84rem; font-weight:850; margin-bottom:8px; color:#27375f; }
+    .text-input { width:100%; height:48px; border:1.5px solid #cad4ec; border-radius:10px; padding:0 14px; color:var(--ink); font-weight:800; font-size:1rem; outline:none; transition:.2s; }
+    .text-input:focus { border-color:var(--blue); box-shadow:0 0 0 4px rgba(65,105,232,.13); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .toggle-card { border:1.5px solid #d5def1; border-radius:12px; padding:13px 14px; display:flex; align-items:center; justify-content:space-between; min-height:54px; cursor:pointer; }
+    .toggle-card span:first-child { font-size:.9rem; font-weight:800; }
+    .switch { appearance:none; width:44px; height:24px; border-radius:99px; background:#bdc7dc; position:relative; cursor:pointer; transition:.2s; flex:0 0 auto; }
+    .switch:before { content:""; position:absolute; width:18px; height:18px; left:3px; top:3px; border-radius:50%; background:white; box-shadow:0 2px 5px #52608066; transition:.2s; }
+    .switch:checked { background:var(--blue); }
+    .switch:checked:before { transform:translateX(20px); }
+    .colors { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .color-field { border:1.5px solid #d5def1; border-radius:10px; padding:9px; display:flex; align-items:center; gap:9px; }
+    .color-field input { appearance:none; border:0; padding:0; width:28px; height:28px; background:transparent; cursor:pointer; }
+    .color-field input::-webkit-color-swatch { border:0; border-radius:6px; }
+    .color-field span { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+    .color-field small { font-weight:750; color:#59698d; line-height:1; }
+    .color-field .hex-input { appearance:none; width:100%; height:22px; border:0; padding:0; background:transparent; color:#24345e; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.75rem; font-weight:800; cursor:text; outline:none; text-transform:uppercase; }
+    .upload { border:1.5px dashed #aebcdf; border-radius:12px; padding:14px; display:flex; align-items:center; gap:12px; background:#f9fbff; }
+    .upload input { width:100%; color:#647295; font-size:.82rem; }
+    .range-row { display:flex; align-items:center; gap:14px; }
+    input[type="range"] { width:100%; accent-color:var(--blue); }
+    output { min-width:45px; font-size:.82rem; font-weight:850; color:#657294; }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:auto; padding-top:6px; }
+    .btn { border:0; border-radius:11px; min-height:49px; padding:0 18px; font-weight:850; cursor:pointer; transition:transform .15s,box-shadow .15s,background .15s; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn:focus-visible { outline:3px solid #ffdd29; outline-offset:3px; }
+    .primary { background:var(--blue); color:#fff; box-shadow:0 9px 20px rgba(65,105,232,.22); }
+    .secondary { background:#edf2ff; color:#2f4eb1; }
+    .helper { margin:11px 0 0; text-align:center; font-size:.75rem; color:#8290ad; }
+    @media (max-width:850px) { .page{padding:18px}.shell{width:min(680px,100%)}header{align-items:flex-start;flex-direction:column}.hint{display:none}main{grid-template-columns:1fr;padding:20px;gap:26px}.preview-pane{min-height:430px}.eyebrow,.size-note{position:static;align-self:flex-start;margin-bottom:8px}.size-note{margin-top:8px;margin-bottom:0}.actions{margin-top:10px} }
+    @media (max-width:500px) { .row,.colors,.actions,.prompt-row{grid-template-columns:1fr}.idea-grid{grid-template-columns:1fr}.page{padding:12px}.preview-pane{padding:16px;min-height:360px}.brand-mark{width:32px;height:32px}main{border-radius:18px} }
+  </style>
+</head>
+<body>
+  <div class="page"><div class="shell">
+    <header>
+      <div class="brand"><span class="brand-mark">✦</span><h1>Badge Studio</h1></div>
+      <p class="hint">Make a badge for absolutely anything.</p>
+    </header>
+    <main>
+      <section class="preview-pane" aria-label="Live sticker preview">
+        <span class="eyebrow">Live preview</span>
+        <svg id="stickerSvg" viewBox="0 0 600 650" role="img" aria-labelledby="stickerTitle stickerDesc" xmlns="http://www.w3.org/2000/svg">
+          <title id="stickerTitle">Custom sticker</title><desc id="stickerDesc">A hexagonal badge with editable text and artwork.</desc>
+          <defs>
+            <clipPath id="circleClip" clipPathUnits="userSpaceOnUse"><circle cx="0" cy="0" r="100"/></clipPath>
+            <clipPath id="freeClip" clipPathUnits="userSpaceOnUse"><rect x="-115" y="-105" width="230" height="210" rx="24"/></clipPath>
+            <path id="textArc" d="M 112 320 A 214 214 0 0 1 488 320" />
+          </defs>
+          <path id="outerHex" fill="#43c4de" d="M300 25 545 165 545 445 300 585 55 445 55 165Z"/>
+          <path id="innerHex" fill="#106371" d="M300 58 516 182 516 428 300 552 84 428 84 182Z"/>
+          <text id="messageText" fill="#fff" font-family="Arial Black,Arial,sans-serif" font-size="52" font-weight="900" letter-spacing="3"><textPath id="messagePath" href="#textArc" startOffset="50%" text-anchor="middle">I DEMOED</textPath></text>
+          <circle id="artCircle" cx="300" cy="380" r="111" fill="#43c4de"/>
+          <g id="artwork" transform="translate(300 380) scale(1)">
+            <g id="placeholderArt" aria-hidden="true">
+              <path d="m0-72 17 45 48-17-26 42 40 29-49 7 3 51L0 46-33 85l3-51-49-7 40-29-26-42 48 17Z" fill="#ffe20a" stroke="#263b8f" stroke-width="7" stroke-linejoin="round"/>
+              <circle cx="0" cy="7" r="21" fill="#fff" stroke="#263b8f" stroke-width="7"/>
+              <path d="m-9 7 7 8L12-3" fill="none" stroke="#263b8f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+            <image id="uploadedArt" x="-100" y="-100" width="200" height="200" preserveAspectRatio="xMidYMid meet" clip-path="url(#circleClip)" style="display:none"/>
+          </g>
+        </svg>
+        <span class="size-note">Exports at 1200 × 1300 px</span>
+      </section>
+      <section class="controls">
+        <h2>Make it yours</h2><p class="subcopy">Change the words, keep the badge energy, and download a sticker-ready file for any occasion.</p>
+        <section class="copilot" aria-labelledby="copilotTitle">
+          <div class="copilot-head"><div><h3 class="copilot-title" id="copilotTitle">Badge Copilot ✦</h3><p class="copilot-copy">Describe the moment and get three custom sticker ideas.</p></div><span class="local-pill">Runs locally</span></div>
+          <div class="prompt-row"><textarea class="prompt-input" id="momentPrompt" maxlength="180" placeholder="My friend finished her first marathon and loves pink."></textarea><div><select class="tone-select" id="ideaTone" aria-label="Sticker idea tone"><option value="playful">Playful</option><option value="heartfelt">Heartfelt</option><option value="proud">Proud</option><option value="chaotic">Chaotic</option></select><button class="ai-button" id="generateIdeas">Make ideas</button></div></div>
+          <p class="ai-status" id="aiStatus" aria-live="polite">The first run downloads a small open model, then keeps it cached on this device.</p>
+          <div class="idea-grid" id="ideaGrid" hidden></div>
+        </section>
+        <div class="field"><label for="message">Sticker text</label><input class="text-input" id="message" value="I DEMOED" maxlength="28" aria-describedby="charHelp"/><small id="charHelp" style="display:block;margin-top:6px;color:#8290ad">Best at 28 characters or fewer.</small></div>
+        <div class="field"><label class="toggle-card" for="showCircle"><span>Artwork circle</span><input class="switch" id="showCircle" type="checkbox" checked /></label></div>
+        <div class="field"><span class="label">Sticker colors</span><div class="colors">
+          <label class="color-field"><input id="bgColor" type="color" value="#106371" aria-label="Badge background color wheel"/><span><small>Badge</small><input class="hex-input" id="bgHex" value="#106371" maxlength="7" aria-label="Badge background hex code"/></span></label>
+          <label class="color-field"><input id="frameColor" type="color" value="#43c4de" aria-label="Frame color wheel"/><span><small>Frame</small><input class="hex-input" id="frameHex" value="#43C4DE" maxlength="7" aria-label="Frame hex code"/></span></label>
+          <label class="color-field"><input id="circleColor" type="color" value="#43c4de" aria-label="Artwork circle color wheel"/><span><small>Circle</small><input class="hex-input" id="circleHex" value="#43C4DE" maxlength="7" aria-label="Artwork circle hex code"/></span></label>
+          <label class="color-field"><input id="textColor" type="color" value="#ffffff" aria-label="Text color wheel"/><span><small>Text</small><input class="hex-input" id="textHex" value="#FFFFFF" maxlength="7" aria-label="Text hex code"/></span></label>
+        </div></div>
+        <div class="field"><label for="artUpload">Your artwork <span style="font-weight:500;color:#8290ad">(optional)</span></label><div class="upload"><input id="artUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></div></div>
+        <div class="field"><label for="artScale">Artwork size</label><div class="range-row"><input id="artScale" type="range" min="60" max="165" value="100"/><output id="scaleOutput">100%</output></div></div>
+        <div class="actions"><button class="btn primary" id="downloadPng">Download PNG</button><button class="btn secondary" id="downloadSvg">Download SVG</button></div>
+        <p class="helper">Your artwork stays in your browser and is never uploaded.</p>
+      </section>
+    </main>
+  </div></div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const els = { svg:$('stickerSvg'), message:$('message'), messagePath:$('messagePath'), messageText:$('messageText'), showCircle:$('showCircle'), artCircle:$('artCircle'), artScale:$('artScale'), scaleOutput:$('scaleOutput'), artwork:$('artwork'), upload:$('artUpload'), uploaded:$('uploadedArt'), placeholder:$('placeholderArt'), bg:$('bgColor'), bgHex:$('bgHex'), frame:$('frameColor'), frameHex:$('frameHex'), circle:$('circleColor'), circleHex:$('circleHex'), text:$('textColor'), textHex:$('textHex'), inner:$('innerHex'), outer:$('outerHex'), prompt:$('momentPrompt'), tone:$('ideaTone'), generate:$('generateIdeas'), aiStatus:$('aiStatus'), ideaGrid:$('ideaGrid') };
+    let imageData = '';
+    let layoutVersion = 0;
+    let badgeGenerator = null;
+    const palettes = {
+      playful:[['#673AB7','#FFCA28','#FF7043','#FFFFFF'],['#00796B','#80CBC4','#FFEB3B','#FFFFFF'],['#E91E63','#FFC1D8','#7B1FA2','#FFFFFF']],
+      heartfelt:[['#8E3151','#E7A6B9','#F6D5DE','#FFFFFF'],['#5D4037','#FFCC80','#F5E3C3','#FFFFFF'],['#4A517D','#A8B2E0','#F2C6D8','#FFFFFF']],
+      proud:[['#173F5F','#3CAEA3','#F6D55C','#FFFFFF'],['#263B8F','#43C4DE','#FFE20A','#FFFFFF'],['#3B5D35','#9BC53D','#FDE74C','#FFFFFF']],
+      chaotic:[['#311B92','#FF6D00','#00E5FF','#FFFFFF'],['#111111','#FF1744','#76FF03','#FFFFFF'],['#004D40','#FFEA00','#FF4081','#FFFFFF']]
+    };
+    function applyState(options={}) {
+      if (typeof options.text === 'string') els.message.value = options.text.slice(0,28);
+      if (typeof options.showCircle === 'boolean') els.showCircle.checked = options.showCircle;
+      if (typeof options.scale === 'number') els.artScale.value = Math.min(165,Math.max(60,options.scale));
+      if (options.bgColor) els.bg.value = options.bgColor;
+      if (options.frameColor) els.frame.value = options.frameColor;
+      if (options.circleColor) els.circle.value = options.circleColor;
+      if (options.textColor) els.text.value = options.textColor;
+      render();
+      return getState();
+    }
+    function getState(){ return {text:els.message.value,showCircle:els.showCircle.checked,scale:Number(els.artScale.value),bgColor:els.bg.value,frameColor:els.frame.value,circleColor:els.circle.value,textColor:els.text.value}; }
+    function positionArtwork(circleY){
+      els.artCircle.setAttribute('cy',circleY.toFixed(1));
+      const raw=Number(els.artScale.value)/100; const auto=els.showCircle.checked?1:1.08; const s=raw*auto; const artY=els.showCircle.checked?circleY:circleY+12;
+      els.artwork.setAttribute('transform',`translate(300 ${artY}) scale(${s})`);
+    }
+    function fitArtworkToPaintedText(version){
+      const ns='http://www.w3.org/2000/svg';
+      const textSvg=document.createElementNS(ns,'svg');
+      textSvg.setAttribute('xmlns',ns); textSvg.setAttribute('width','600'); textSvg.setAttribute('height','650'); textSvg.setAttribute('viewBox','0 0 600 650');
+      textSvg.append(els.svg.querySelector('defs').cloneNode(true)); textSvg.append(els.messageText.cloneNode(true));
+      const img=new Image();
+      img.onload=()=>{
+        if(version!==layoutVersion)return;
+        const canvas=document.createElement('canvas');canvas.width=600;canvas.height=650;
+        const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
+        const pixels=ctx.getImageData(0,0,600,400).data;
+        const radius=111,gap=18,safe=radius+gap;let requiredY=380;
+        for(let y=0;y<400;y+=2){for(let x=170;x<=430;x+=2){if(pixels[(y*600+x)*4+3]>24){const dx=Math.abs(x-300);if(dx<safe)requiredY=Math.max(requiredY,y+Math.sqrt(safe*safe-dx*dx));}}}
+        positionArtwork(Math.min(429,requiredY));
+      };
+      img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(textSvg));
+    }
+    function render() {
+      const text=(els.message.value.trim()||'YOUR MOMENT').toUpperCase();
+      els.messagePath.textContent=text;
+      els.messageText.setAttribute('font-size','56');
+      const measured=els.messagePath.getComputedTextLength();
+      const fitted=measured>0?Math.max(18,Math.min(56,56*(380/measured))):42;
+      els.messageText.setAttribute('font-size',fitted.toFixed(1));
+      els.artCircle.style.display=els.showCircle.checked?'':'none';
+      els.artCircle.setAttribute('r','111');
+      els.inner.setAttribute('fill',els.bg.value); els.outer.setAttribute('fill',els.frame.value); els.artCircle.setAttribute('fill',els.circle.value); els.messageText.setAttribute('fill',els.text.value);
+      [[els.bg,els.bgHex],[els.frame,els.frameHex],[els.circle,els.circleHex],[els.text,els.textHex]].forEach(([picker,hex])=>{if(document.activeElement!==hex)hex.value=picker.value.toUpperCase();});
+      positionArtwork(390);
+      fitArtworkToPaintedText(++layoutVersion);
+      els.uploaded.setAttribute('clip-path',els.showCircle.checked?'url(#circleClip)':'url(#freeClip)');
+      els.uploaded.setAttribute('x',els.showCircle.checked?'-100':'-115'); els.uploaded.setAttribute('y',els.showCircle.checked?'-100':'-105'); els.uploaded.setAttribute('width',els.showCircle.checked?'200':'230'); els.uploaded.setAttribute('height',els.showCircle.checked?'200':'210');
+      els.scaleOutput.value=`${els.artScale.value}%`;
+    }
+    [els.message,els.showCircle,els.artScale].forEach(el=>el.addEventListener('input',render));
+    [[els.bg,els.bgHex],[els.frame,els.frameHex],[els.circle,els.circleHex],[els.text,els.textHex]].forEach(([picker,hex])=>{picker.addEventListener('input',()=>{hex.value=picker.value.toUpperCase();render();});hex.addEventListener('input',()=>{const value=hex.value.startsWith('#')?hex.value:'#'+hex.value;if(/^#[0-9A-Fa-f]{6}$/.test(value)){picker.value=value;render();}});hex.addEventListener('blur',()=>{hex.value=picker.value.toUpperCase();});});
+    els.upload.addEventListener('change',()=>{ const file=els.upload.files[0]; if(!file)return; const reader=new FileReader(); reader.onload=()=>{imageData=reader.result;els.uploaded.setAttribute('href',imageData);els.uploaded.style.display='';els.placeholder.style.display='none';render();}; reader.readAsDataURL(file); });
+    async function loadBadgeGenerator(){
+      if(badgeGenerator)return badgeGenerator;
+      els.aiStatus.textContent='Loading the local model… the first run can take a minute.';
+      const {pipeline}=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm');
+      const options={dtype:'q4',progress_callback:(progress)=>{if(progress.status==='progress'&&Number.isFinite(progress.progress))els.aiStatus.textContent=`Loading local model… ${Math.round(progress.progress)}%`;}};
+      badgeGenerator=await pipeline('text-generation','onnx-community/SmolLM2-135M-Instruct-ONNX-MHA',options);
+      return badgeGenerator;
+    }
+    function cleanIdeas(raw){
+      const lines=String(raw).split(/\r?\n|\s*\|\s*/).map(line=>line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^['\"`]|['\"`]$/g,'').trim().toUpperCase()).filter(Boolean);
+      const blocked=/^(HERE|SURE|IDEA|STICKER|PHRASE|OUTPUT)/;
+      return [...new Set(lines.filter(line=>line.length>=3&&line.length<=28&&!blocked.test(line)))].slice(0,3);
+    }
+    function fallbackIdeas(moment){
+      const value=moment.toLowerCase();
+      const known=[
+        [/marathon|race|running|run\b/,['MARATHON COMPLETE','MILES OF PRIDE','FINISH LINE MAGIC']],
+        [/wedding|married|marriage|engaged/,['MADE IT OFFICIAL','FOREVER STARTS NOW','BEST DAY EVER']],
+        [/graduat|degree|diploma|school/,['DEGREE UNLOCKED','NEXT CHAPTER','PROUD AND DONE']],
+        [/birthday|born|turning/,['LEVELLED UP','BIRTHDAY ENERGY','ANOTHER YEAR ICONIC']],
+        [/launch|ship|demo|build|project|hack/,['WE SHIPPED IT','BUILT WITH JOY','IDEA TO REALITY']],
+        [/new job|promotion|promoted|career/,['BIG ROLE ENERGY','NEW JOB UNLOCKED','CAREER GLOW UP']]
+      ];
+      const match=known.find(([pattern])=>pattern.test(value));if(match)return match[1];
+      const stop=new Set('about after again also and are because been being but can did does for from friend friends got had has have her him his into its just make made more our she that the their them they this was were what when who will with you your'.split(' '));
+      const keyword=(value.match(/[a-z0-9]+/g)||[]).filter(word=>word.length>3&&!stop.has(word))[0]||'MOMENT';
+      const focus=keyword.toUpperCase().slice(0,16);
+      return [`${focus} UNLOCKED`.slice(0,28),`BIG ${focus} ENERGY`.slice(0,28),'MADE THIS HAPPEN'];
+    }
+    function showIdeas(ideas){
+      const set=palettes[els.tone.value]||palettes.playful;
+      els.ideaGrid.innerHTML='';
+      ideas.forEach((text,index)=>{
+        const [bg,frame,circle,ink]=set[index%set.length];
+        const concept={text,bgColor:bg,frameColor:frame,circleColor:circle,textColor:ink,showCircle:index!==1,scale:index===2?112:100};
+        const button=document.createElement('button');button.type='button';button.className='idea';button.setAttribute('aria-label',`Use sticker idea: ${text}`);
+        const title=document.createElement('strong');title.textContent=text;
+        const swatches=document.createElement('span');swatches.className='swatches';[bg,frame,circle].forEach(color=>{const dot=document.createElement('i');dot.style.background=color;swatches.append(dot);});
+        button.append(title,swatches);button.addEventListener('click',()=>{applyState(concept);els.aiStatus.textContent=`Applied “${text}”. You can still change anything below.`;});els.ideaGrid.append(button);
+      });
+      els.ideaGrid.hidden=false;
+    }
+    async function generateBadgeIdeas(){
+      const moment=els.prompt.value.trim();
+      if(!moment){els.prompt.focus();els.aiStatus.textContent='Tell me what you are celebrating first.';return;}
+      els.generate.disabled=true;els.ideaGrid.hidden=true;
+      try{
+        const generator=await loadBadgeGenerator();
+        els.aiStatus.textContent='Dreaming up sticker ideas on your device…';
+        const messages=[{role:'system',content:'Reply with only three short uppercase sticker phrases, one per line. Each line is under 28 characters. Example:\nRUN DONE\nMILES OF PRIDE\nFINISH LINE MAGIC'},{role:'user',content:`Write three ${els.tone.value} sticker phrases about this moment: ${moment}\nOnly the three short lines.`}];
+        const result=await generator(messages,{max_new_tokens:48,do_sample:false,repetition_penalty:1.2});
+        const generated=result?.[0]?.generated_text;
+        const raw=Array.isArray(generated)?generated[generated.length-1]?.content:generated;
+        const ideas=[...new Set([...cleanIdeas(raw),...fallbackIdeas(moment)])].slice(0,3);
+        showIdeas(ideas);els.aiStatus.textContent='Pick an idea to apply it, then fine-tune anything below.';
+      }catch(error){console.error(error);els.aiStatus.textContent='The local model could not finish this time. Check your connection for the first download, then try again.';}
+      finally{els.generate.disabled=false;}
+    }
+    els.generate.addEventListener('click',generateBadgeIdeas);
+    function serializedSvg(){ const clone=els.svg.cloneNode(true); clone.setAttribute('xmlns','http://www.w3.org/2000/svg'); return new XMLSerializer().serializeToString(clone); }
+    function download(blob,name){ const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),800); }
+    $('downloadSvg').addEventListener('click',()=>download(new Blob([serializedSvg()],{type:'image/svg+xml'}),'custom-badge-sticker.svg'));
+    $('downloadPng').addEventListener('click',()=>{ const source=serializedSvg();const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=1200;c.height=1300;c.getContext('2d').drawImage(img,0,0,1200,1300);c.toBlob(blob=>download(blob,'custom-badge-sticker.png'),'image/png');};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(source);});
+    render();
+    if (document.modelContext?.registerTool) {
+      document.modelContext.registerTool({name:'customize_sticker',title:'Customize sticker',description:'Update the visible custom sticker text, shape, artwork size, and colors.',inputSchema:{type:'object',properties:{text:{type:'string',maxLength:28},showCircle:{type:'boolean'},scale:{type:'number',minimum:60,maximum:165},bgColor:{type:'string',pattern:'^#[0-9A-Fa-f]{6}$'},frameColor:{type:'string',pattern:'^#[0-9A-Fa-f]{6}$'},circleColor:{type:'string',pattern:'^#[0-9A-Fa-f]{6}$'},textColor:{type:'string',pattern:'^#[0-9A-Fa-f]{6}$'}},additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute:(input)=>{const colors=['bgColor','frameColor','circleColor','textColor'];if(input.scale!==undefined&&(!Number.isFinite(input.scale)||input.scale<60||input.scale>165))throw new TypeError('Scale must be between 60 and 165.');if(input.text!==undefined&&(typeof input.text!=='string'||input.text.length>28))throw new TypeError('Text must be 28 characters or fewer.');if(colors.some(key=>input[key]!==undefined&&!/^#[0-9A-Fa-f]{6}$/.test(input[key])))throw new TypeError('Colors must use six-digit hex values.');return applyState(input)}}).catch?.(()=>{});
+    }
+  </script>
+</body>
+</html>
